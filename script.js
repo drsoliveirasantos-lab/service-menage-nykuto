@@ -1,9 +1,6 @@
-
-// À MODIFIER : remplacer par le numéro WhatsApp de votre amie au format international, sans + ni espaces.
-// Exemple France : 33612345678
+// Configuration du contact.
+// Remplacer par le numéro WhatsApp définitif au format international, sans + ni espaces.
 const WHATSAPP_NUMBER = "33768345608";
-// À MODIFIER : remplacer par l’adresse e-mail qui recevra les demandes.
-const CONTACT_EMAIL = "votre.email@gmail.com";
 
 const navToggle = document.querySelector(".nav-toggle");
 const mainNav = document.querySelector(".main-nav");
@@ -35,7 +32,6 @@ zoneSelect?.addEventListener("change", () => {
   }
 });
 
-
 const serviceMap = {
   "menage-regulier": "Ménage régulier",
   "menage-ponctuel": "Ménage ponctuel",
@@ -53,32 +49,28 @@ if (requestedService && serviceSelect && serviceMap[requestedService]) {
 }
 
 const quoteForm = document.querySelector("#quote-form");
-const emailSubmitButton = document.querySelector("#email-submit");
 
 function buildQuoteMessage(form) {
   const data = new FormData(form);
   const zone = data.get("zone") === "Autre" ? data.get("other-zone") : data.get("zone");
 
   return [
-    "Bonjour, je souhaite un devis pour une prestation de ménage.",
+    "Bonjour, je souhaite une première estimation pour une prestation de ménage.",
     "",
     `Prénom : ${data.get("firstname")}`,
     `Téléphone : ${data.get("phone")}`,
     `E-mail : ${data.get("email") || "Non précisé"}`,
-    `Contact préféré : ${data.get("contact-preference") || "Non précisé"}`,
     `Ville/quartier : ${zone}`,
     `Type de logement : ${data.get("housing")}`,
     `Surface approximative : ${data.get("surface")}`,
     `Besoin principal : ${data.get("service")}`,
     `Fréquence souhaitée : ${data.get("frequency")}`,
     `Message : ${data.get("message") || "Non précisé"}`
-  ].join("
-");
+  ].join("\n");
 }
 
 quoteForm?.addEventListener("submit", (event) => {
   event.preventDefault();
-
   if (!quoteForm.reportValidity()) return;
 
   const message = buildQuoteMessage(quoteForm);
@@ -86,22 +78,11 @@ quoteForm?.addEventListener("submit", (event) => {
   window.open(url, "_blank", "noopener,noreferrer");
 });
 
-emailSubmitButton?.addEventListener("click", () => {
-  if (!quoteForm || !quoteForm.reportValidity()) return;
-
-  const data = new FormData(quoteForm);
-  const clientName = data.get("firstname") || "Client";
-  const subject = `Demande de devis ménage - ${clientName}`;
-  const body = buildQuoteMessage(quoteForm);
-  const url = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-
-  window.location.href = url;
-});
-
 const reviewForm = document.querySelector("#review-form");
 
 reviewForm?.addEventListener("submit", (event) => {
   event.preventDefault();
+  if (!reviewForm.reportValidity()) return;
 
   const data = new FormData(reviewForm);
 
