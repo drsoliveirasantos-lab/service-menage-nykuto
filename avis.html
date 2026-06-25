@@ -6,150 +6,43 @@
   <meta name="theme-color" content="#09090a" />
   <link rel="stylesheet" href="styles.css" />
 
-  <title>Avis clients | Nykuto Services</title>
+  <title>Avis clients | Leticia Ménage Bordeaux</title>
   <meta name="description" content="Avis clients et formulaire pour laisser un témoignage sur le service de ménage à domicile à Bordeaux." />
 </head>
 <body>
 
   <header class="site-header">
-    <a class="brand" href="index.html" aria-label="Accueil">
-      <span class="brand-mark" aria-hidden="true">N</span>
-      <span>
-        <strong>Nykuto Services</strong>
-        <small>Ménage à domicile</small>
-      </span>
-    </a>
-
-    <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav">
-      <span></span><span></span><span></span>
-      <span class="sr-only">Ouvrir le menu</span>
-    </button>
-
-    <nav class="main-nav" id="main-nav">
-      <a href="index.html">Accueil</a>
-      <a href="prestations.html">Prestations</a>
-      <a href="apropos.html">À propos</a>
-      <a href="avis.html" aria-current="page">Avis</a>
-      <a href="contact.html">Contact</a>
-      <a class="nav-cta" href="devis.html">Recevoir une estimation</a>
-    </nav>
+    <a class="brand" href="index.html" aria-label="Accueil"><span class="brand-mark" aria-hidden="true">L</span><span><strong>Leticia</strong><small>Ménage Bordeaux</small></span></a>
+    <button class="nav-toggle" aria-expanded="false" aria-controls="main-nav"><span></span><span></span><span></span><span class="sr-only">Ouvrir le menu</span></button>
+    <nav class="main-nav" id="main-nav"><a href="index.html">Accueil</a><a href="prestations.html">Prestations</a><a href="apropos.html">À propos</a><a href="avis.html" aria-current="page">Avis</a><a href="contact.html">Contact</a><a class="nav-cta" href="devis.html">Recevoir une estimation</a></nav>
   </header>
 
   <main class="page">
-    <section class="page-hero">
-      <div class="page-hero-inner">
-        <p class="eyebrow">Avis clients</p>
-        <h1>Des retours simples pour se sentir en confiance.</h1>
-        <p class="lead">Les avis permettent aux nouveaux clients de mieux comprendre le sérieux, la discrétion et la qualité du service.</p>
-      </div>
-    </section>
+    <section class="page-hero"><div class="page-hero-inner"><p class="eyebrow">Avis clients</p><h1>Des retours simples pour se sentir en confiance.</h1><p class="lead">Les avis permettent aux nouveaux clients de mieux comprendre le sérieux, la discrétion et la qualité du service.</p></div></section>
 
-    <section class="section">
-      <div class="container review-grid">
-        <article class="review-card">
-          <div class="stars">★★★★★</div>
-          <blockquote>“Letícia vient chaque semaine chez nous. Elle est ponctuelle, discrète et laisse toujours l’appartement très propre.”</blockquote>
-          <cite>Cliente · Bordeaux</cite>
-        </article>
-        <article class="review-card">
-          <div class="stars">★★★★★</div>
-          <blockquote>“Très bonne communication. On se sent en confiance et le travail est fait avec soin.”</blockquote>
-          <cite>Famille · Talence</cite>
-        </article>
-        <article class="review-card">
-          <div class="stars">★★★★★</div>
-          <blockquote>“Personne sérieuse, agréable et soigneuse. Je recommande.”</blockquote>
-          <cite>Client · Mérignac</cite>
-        </article>
-      </div>
-    </section>
+    <section class="section"><div class="container review-grid">
+        <article class="review-card"><div class="stars">★★★★★</div><blockquote>“Leticia vient chaque semaine chez nous. Elle est ponctuelle, discrète et laisse toujours l’appartement très propre.”</blockquote><cite>Cliente · Bordeaux</cite></article>
+        <article class="review-card"><div class="stars">★★★★★</div><blockquote>“Très bonne communication. On se sent en confiance et le travail est fait avec soin.”</blockquote><cite>Famille · Talence</cite></article>
+        <article class="review-card"><div class="stars">★★★★★</div><blockquote>“Personne sérieuse, agréable et soigneuse. Je recommande.”</blockquote><cite>Client · Mérignac</cite></article>
+      </div></section>
 
-    <section class="section">
-      <div class="container review-layout">
-        <div class="dark-panel review-form-card">
-          <p class="eyebrow">Laisser un avis</p>
-          <h2>Envoyer un témoignage.</h2>
-          <p>Sur un site statique, l’avis ne se publie pas automatiquement. Le formulaire prépare un message WhatsApp pour que le client puisse envoyer son témoignage.</p>
-        </div>
-
+    <section class="section"><div class="container review-layout">
+        <div class="dark-panel review-form-card"><p class="eyebrow">Laisser un avis</p><h2>Envoyer un témoignage.</h2><p>Sur un site statique, l’avis ne se publie pas automatiquement. Le formulaire prépare un message WhatsApp pour que le client puisse envoyer son témoignage.</p></div>
         <form class="elegant-form review-form-card form-grid" id="review-form">
-          <div class="form-title-row full">
-            <h2>Votre avis</h2>
-            <p>Quelques lignes suffisent pour aider les prochains clients à se sentir en confiance.</p>
-          </div>
-
-          <div class="form-row">
-            <label for="review-name">Prénom</label>
-            <input id="review-name" name="review-name" type="text" placeholder="Votre prénom" required />
-          </div>
-
-          <div class="form-row">
-            <label for="review-city">Ville / quartier</label>
-            <input id="review-city" name="review-city" type="text" placeholder="Ex : Bordeaux Centre" required />
-          </div>
-
-          <div class="form-row">
-            <label for="review-rating">Note</label>
-            <select id="review-rating" name="review-rating" required>
-              <option value="">Sélectionner</option>
-              <option>5/5</option>
-              <option>4/5</option>
-              <option>3/5</option>
-              <option>2/5</option>
-              <option>1/5</option>
-            </select>
-          </div>
-
-          <div class="form-row">
-            <label for="review-service">Prestation</label>
-            <select id="review-service" name="review-service" required>
-              <option value="">Sélectionner</option>
-              <option>Ménage régulier</option>
-              <option>Ménage ponctuel</option>
-              <option>Repassage</option>
-              <option>Grand nettoyage</option>
-              <option>Autre</option>
-            </select>
-          </div>
-
-          <div class="form-row full">
-            <label for="review-message">Votre témoignage</label>
-            <textarea id="review-message" name="review-message" placeholder="Ex : Travail très soigné, communication facile, personne ponctuelle..." required></textarea>
-          </div>
-
-          <div class="form-actions full">
-            <button class="btn btn-primary" type="submit">Préparer mon avis WhatsApp</button>
-            <p class="form-note">Le message s’ouvrira dans WhatsApp. Vous pourrez le relire avant de l’envoyer.</p>
-          </div>
+          <div class="form-title-row full"><h2>Votre avis</h2><p>Quelques lignes suffisent pour aider les prochains clients à se sentir en confiance.</p></div>
+          <div class="form-row"><label for="review-name">Prénom</label><input id="review-name" name="review-name" type="text" placeholder="Votre prénom" required /></div>
+          <div class="form-row"><label for="review-city">Ville / quartier</label><input id="review-city" name="review-city" type="text" placeholder="Ex : Bordeaux Centre" required /></div>
+          <div class="form-row"><label for="review-rating">Note</label><select id="review-rating" name="review-rating" required><option value="">Sélectionner</option><option>5/5</option><option>4/5</option><option>3/5</option><option>2/5</option><option>1/5</option></select></div>
+          <div class="form-row"><label for="review-service">Prestation</label><select id="review-service" name="review-service" required><option value="">Sélectionner</option><option>Ménage régulier</option><option>Ménage ponctuel</option><option>Repassage</option><option>Grand nettoyage</option><option>Autre</option></select></div>
+          <div class="form-row full"><label for="review-message">Votre témoignage</label><textarea id="review-message" name="review-message" placeholder="Ex : Travail très soigné, communication facile, personne ponctuelle..." required></textarea></div>
+          <div class="form-actions full"><button class="btn btn-primary" type="submit">Préparer mon avis WhatsApp</button><p class="form-note">Le message s’ouvrira dans WhatsApp. Vous pourrez le relire avant de l’envoyer.</p></div>
         </form>
-      </div>
-    </section>
+      </div></section>
   </main>
 
-  <div class="trust-strip">
-    <div class="trust-strip-inner">
-      <div><strong>Confidentialité</strong><p>Respect du domicile et de la vie privée.</p></div>
-      <div><strong>Exigence</strong><p>Un travail soigné, avec attention au détail.</p></div>
-      <div><strong>Confiance</strong><p>Une communication simple et rassurante.</p></div>
-      <div><strong>Souplesse</strong><p>Des demandes adaptées à votre rythme.</p></div>
-    </div>
-  </div>
+  <div class="trust-strip"><div class="trust-strip-inner"><div><strong>Confidentialité</strong><p>Respect du domicile et de la vie privée.</p></div><div><strong>Exigence</strong><p>Un travail soigné, avec attention au détail.</p></div><div><strong>Confiance</strong><p>Une communication simple et rassurante.</p></div><div><strong>Souplesse</strong><p>Des demandes adaptées à votre rythme.</p></div></div></div>
 
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <div>
-        <strong>Nykuto Services</strong>
-        <p>Ménage à domicile · Bordeaux et alentours · avec Letícia</p>
-      </div>
-      <div class="footer-links">
-        <a href="index.html">Accueil</a>
-        <a href="prestations.html">Prestations</a>
-        <a href="contact.html">Contact</a>
-        <a href="mentions-legales.html">Mentions légales</a>
-        <a href="confidentialite.html">Confidentialité</a>
-      </div>
-    </div>
-  </footer>
+  <footer class="site-footer"><div class="footer-inner"><div><strong>Leticia</strong><p>Ménage à domicile · Bordeaux et alentours</p></div><div class="footer-links"><a href="index.html">Accueil</a><a href="prestations.html">Prestations</a><a href="contact.html">Contact</a><a href="mentions-legales.html">Mentions légales</a><a href="confidentialite.html">Confidentialité</a></div></div></footer>
 
   <a class="mobile-bottom-cta" href="devis.html">Recevoir une estimation</a>
   <script src="script.js"></script>
