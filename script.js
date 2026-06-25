@@ -2,49 +2,6 @@
 // Remplacer par le numéro WhatsApp définitif au format international, sans + ni espaces.
 const WHATSAPP_NUMBER = "33768345608";
 
-function applyPersonalBranding() {
-  document.title = document.title.replace(/Nykuto Services/g, "Laetitia");
-
-  document.querySelectorAll(".brand-mark").forEach((mark) => {
-    mark.textContent = "L";
-  });
-
-  document.querySelectorAll(".brand strong").forEach((brand) => {
-    brand.textContent = "Laetitia";
-  });
-
-  document.querySelectorAll(".brand small").forEach((subtitle) => {
-    subtitle.textContent = "Ménage Bordeaux";
-  });
-
-  document.querySelectorAll(".site-footer strong").forEach((footerBrand) => {
-    if (footerBrand.textContent.includes("Nykuto Services")) {
-      footerBrand.textContent = "Laetitia";
-    }
-  });
-
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
-    acceptNode(node) {
-      const parentTag = node.parentElement?.tagName;
-      if (["SCRIPT", "STYLE"].includes(parentTag)) return NodeFilter.FILTER_REJECT;
-      return node.nodeValue.includes("Nykuto Services") ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_SKIP;
-    }
-  });
-
-  const nodes = [];
-  while (walker.nextNode()) nodes.push(walker.currentNode);
-
-  nodes.forEach((node) => {
-    node.nodeValue = node.nodeValue
-      .replace(/Nykuto Services —/g, "Letícia —")
-      .replace(/Nykuto Services présente/g, "Letícia présente")
-      .replace(/Nom du site :\s*Nykuto Services/g, "Nom du site : Laetitia")
-      .replace(/Nykuto Services/g, "Laetitia");
-  });
-}
-
-applyPersonalBranding();
-
 const navToggle = document.querySelector(".nav-toggle");
 const mainNav = document.querySelector(".main-nav");
 
