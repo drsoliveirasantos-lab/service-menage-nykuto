@@ -22,6 +22,21 @@ Workflow recommandé :
 6. Sauvegarder `main` avant tout alignement forcé.
 7. Ne publier en production que si les contrôles essentiels sont OK.
 
+## Règle GitHub Actions — un seul workflow consolidé
+
+Ne pas lancer plusieurs workflows séparés pour tester la même correction.
+
+Règle obligatoire :
+
+- Utiliser un seul workflow principal pour une validation complète.
+- Regrouper tous les tests nécessaires dans ce workflow unique sous forme de jobs séparés.
+- Ne pas créer de workflows debug parallèles qui se déclenchent sur le même commit si le workflow principal couvre déjà le besoin.
+- Ne pas déclencher plusieurs commits de test successifs avant que le run précédent ait livré ses résultats, sauf correction urgente d'un échec déjà diagnostiqué.
+- Préférer ajouter un job au workflow principal plutôt que créer un nouveau workflow.
+- Le `concurrency` doit éviter les annulations inutiles. Pour les runs de validation, préférer `cancel-in-progress: false`, sauf cas explicitement voulu.
+
+Objectif : un commit important doit produire un seul run lisible avec tous les jobs nécessaires, au lieu de plusieurs runs qui s'annulent ou se concurrencent.
+
 ## Qualité des corrections
 
 - Corriger la cause exacte, pas ajouter des rustines inutiles.
@@ -68,4 +83,5 @@ Avant de mettre à jour `main`, confirmer :
 - `preview` est validé visuellement ;
 - les changements sont compris ;
 - une sauvegarde de `main` existe si le changement est important ;
-- la PR ou le commit décrit clairement les modifications.
+- la PR ou le commit décrit clairement les modifications ;
+- le workflow principal complet est vert ou les exceptions sont explicitement documentées.
