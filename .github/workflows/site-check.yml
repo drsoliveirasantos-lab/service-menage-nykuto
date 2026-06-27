@@ -5,33 +5,27 @@ on:
     branches: [preview]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   current-site-workflows:
     name: Check existing site workflows
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout preview branch
-        uses: actions/checkout@v4
-        with:
-          ref: preview
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-
-      - name: Show checked files
-        run: ls -la
-
-      - name: Check JavaScript syntax
-        run: node --check script.js
+      - name: Clone preview branch
+        run: |
+          git clone --depth 1 --branch preview "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" site
 
       - name: Check current site files and paths
         run: |
+          cd site
           set -e
           for f in index.html prestations.html apropos.html avis.html devis.html contact.html mentions-legales.html confidentialite.html styles.css script.js hero-bordeaux-menage.png portrait-menage-bordeaux.png; do
             test -f "$f" || { echo "Missing file: $f"; exit 1; }
           done
+
+          node --check script.js
 
           ! grep -R "Laetitia\|Letícia\|Nykuto Services\|votre.email@gmail.com\|CONTACT_EMAIL\|assets/portrait-menage-bordeaux.png\|assets/hero-bordeaux-menage.png" *.html script.js
 
