@@ -1,0 +1,71 @@
+# Consignes de travail — Service Ménage Nykuto
+
+Ce dépôt doit être géré avec la même discipline que Med Nykuto.
+
+## Branches
+
+- `preview` = développement, corrections, tests et validation visuelle.
+- `main` = production uniquement.
+- Avant toute mise à jour importante de `main`, créer une branche de sauvegarde : `backup-main-YYYYMMDD`.
+
+## Règle principale
+
+Ne jamais modifier `main` directement pour une correction de site, sauf urgence explicitement validée par le propriétaire du dépôt.
+
+Workflow recommandé :
+
+1. Corriger sur `preview`.
+2. Tester sur `preview`.
+3. Créer ou mettre à jour une issue GitHub qui décrit le bug ou l'amélioration.
+4. Ouvrir une PR `preview → main` quand la correction est validée.
+5. Comparer `preview` et `main` avant merge.
+6. Sauvegarder `main` avant tout alignement forcé.
+7. Ne publier en production que si les contrôles essentiels sont OK.
+
+## Qualité des corrections
+
+- Corriger la cause exacte, pas ajouter des rustines inutiles.
+- Modifier le plus petit bloc responsable possible.
+- Ne pas supprimer de contenu métier sans confirmation.
+- Ne pas remplacer massivement des fichiers si une correction ciblée suffit.
+- Pour un bug UI, corriger le HTML/CSS/JS responsable et vérifier le comportement réel.
+
+## Tests minimaux avant production
+
+Vérifier au minimum :
+
+- navigation principale ;
+- boutons WhatsApp ;
+- formulaire de devis ;
+- liens entre pages ;
+- affichage mobile ;
+- absence de contenu placeholder avant publication ;
+- mentions légales et confidentialité si le site est public.
+
+## Issues GitHub
+
+Créer une issue pour chaque chantier réel :
+
+- bug UI ;
+- problème mobile ;
+- problème formulaire ;
+- SEO / contenu ;
+- déploiement / production ;
+- sécurité ou données personnelles.
+
+Chaque issue doit contenir :
+
+- le problème observé ;
+- le résultat attendu ;
+- les fichiers probablement concernés ;
+- les critères d'acceptation ;
+- le statut des tests.
+
+## Mise en production
+
+Avant de mettre à jour `main`, confirmer :
+
+- `preview` est validé visuellement ;
+- les changements sont compris ;
+- une sauvegarde de `main` existe si le changement est important ;
+- la PR ou le commit décrit clairement les modifications.
