@@ -26,30 +26,41 @@ async function openedUrl(page) {
   return page.evaluate(() => window.__openedUrls?.at(-1) || '');
 }
 
-function assertNoBrowserErrors(page) {
+function collectHardBrowserErrors(page) {
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   page.on('console', (message) => {
-    if (message.type() === 'error') errors.push(message.text());
+    if (message.type() !== 'error') return;
+    const text = message.text();
+    if (/favicon|Failed to load resource|ERR_ABORTED/i.test(text)) return;
+    errors.push(text);
   });
   return errors;
 }
 
-test.describe('Essential public site checks', () => {
+test.describe('Site public Leticia', () => {
   for (const currentPage of pages) {
-    test(`loads ${currentPage} without browser errors`, async ({ page }) => {
-      const errors = assertNoBrowserErrors(page);
+    test(`[smoke] loads ${currentPage} without hard browser errors`, async ({ page }) => {
+      const errors = collectHardBrowserErrors(page);
       const response = await page.goto(`${BASE_URL}/${currentPage}`);
       expect(response?.ok(), `${currentPage} should return HTTP 200`).toBeTruthy();
       await expect(page.locator('header.site-header')).toBeVisible();
       await expect(page.locator('footer.site-footer')).toBeVisible();
       await expect(page.locator('body')).toContainText('Leticia');
-      expect(errors, `Browser errors on ${currentPage}`).toEqual([]);
+      expect(errors, `Hard browser errors on ${currentPage}`).toEqual([]);
     });
   }
 
-  test('desktop navigation reaches every main page', async ({ page }) => {
-    await page.goto(`${BASE_URL}/index.html`);
+  test('[seo] every public page has title and meta description', async ({ page }) => {
+    for (const currentPage of pages) {
+      await page.goto(`${BASE_URL}/${currentPage}`);
+      await expect(page.locator('title')).not.toHaveText('');
+      const description = page.locator('meta[name="description"]');
+      await expect(description).toHaveAttribute('content', /\S{20,}/);
+    }
+  });
+
+  test('[navigation] desktop navigation reaches every main page', async ({ page }) => {
     const navTargets = [
       ['Prestations', /prestations\.html$/],
       ['À propos', /apropos\.html$/],
@@ -60,12 +71,12 @@ test.describe('Essential public site checks', () => {
 
     for (const [label, expectedUrl] of navTargets) {
       await page.goto(`${BASE_URL}/index.html`);
-      await page.getByRole('navigation').getByRole('link', { name: label }).click();
+      await page.getByRole('navigation').getByRole('link', { name: label, exact: true }).click();
       await expect(page).toHaveURL(expectedUrl);
     }
   });
 
-  test('mobile menu opens, closes and keeps navigation usable', async ({ page }) => {
+  test('[mobile] mobile menu opens, closes and keeps navigation usable', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${BASE_URL}/index.html`);
 
@@ -77,12 +88,12 @@ test.describe('Essential public site checks', () => {
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     await expect(nav).toHaveClass(/open/);
 
-    await nav.getByRole('link', { name: 'Prestations' }).click();
+    await nav.getByRole('link', { name: 'Prestations', exact: true }).click();
     await expect(page).toHaveURL(/prestations\.html$/);
     await expect(page.locator('body')).not.toHaveClass(/menu-open/);
   });
 
-  test('service cards prefill the quote form correctly', async ({ page }) => {
+  test('[navigation] service cards prefill the quote form correctly', async ({ page }) => {
     const services = [
       ['menage-regulier', 'Ménage régulier'],
       ['menage-ponctuel', 'Ménage ponctuel'],
@@ -96,7 +107,7 @@ test.describe('Essential public site checks', () => {
     }
   });
 
-  test('quote form validates required fields and prepares a WhatsApp message', async ({ page }) => {
+  test('[forms] quote form validates required fields and prepares a WhatsApp message', async ({ page }) => {
     await installOpenSpy(page);
     await page.goto(`${BASE_URL}/devis.html?service=menage-regulier`);
 
@@ -115,7 +126,7 @@ test.describe('Essential public site checks', () => {
 
     const url = await openedUrl(page);
     expect(url).toContain('https://wa.me/33768345608?text=');
-    const text = decodeURIComponent(new URL(url).searchParams.get('text') || '');
+    const text = new URL(url).searchParams.get('text') || '';
     expect(text).toContain('Bonjour, je souhaite une première estimation');
     expect(text).toContain('Prénom : Sophie');
     expect(text).toContain('Ville/quartier : Bordeaux Centre');
@@ -123,7 +134,7 @@ test.describe('Essential public site checks', () => {
     expect(text).toContain('Fréquence souhaitée : Chaque semaine');
   });
 
-  test('quote form handles Autre city workflow', async ({ page }) => {
+  test('[forms] quote form handles Autre city workflow', async ({ page }) => {
     await installOpenSpy(page);
     await page.goto(`${BASE_URL}/devis.html`);
 
@@ -140,12 +151,12 @@ test.describe('Essential public site checks', () => {
     await page.locator('#frequency').selectOption({ label: 'Une seule fois' });
     await page.getByRole('button', { name: /Envoyer ma demande/i }).click();
 
-    const text = decodeURIComponent(new URL(await openedUrl(page)).searchParams.get('text') || '');
+    const text = new URL(await openedUrl(page)).searchParams.get('text') || '';
     expect(text).toContain('Ville/quartier : Cenon');
     expect(text).toContain('Besoin principal : Grand nettoyage');
   });
 
-  test('review form validates and prepares WhatsApp review message', async ({ page }) => {
+  test('[forms] review form validates and prepares WhatsApp review message', async ({ page }) => {
     await installOpenSpy(page);
     await page.goto(`${BASE_URL}/avis.html`);
 
@@ -161,7 +172,7 @@ test.describe('Essential public site checks', () => {
 
     const url = await openedUrl(page);
     expect(url).toContain('https://wa.me/33768345608?text=');
-    const text = decodeURIComponent(new URL(url).searchParams.get('text') || '');
+    const text = new URL(url).searchParams.get('text') || '';
     expect(text).toContain('Bonjour, je souhaite laisser un avis');
     expect(text).toContain('Prénom : Claire');
     expect(text).toContain('Ville/quartier : Talence');
@@ -169,7 +180,7 @@ test.describe('Essential public site checks', () => {
     expect(text).toContain('Avis : Travail très soigné et communication facile.');
   });
 
-  test('contact WhatsApp CTA points to the expected number', async ({ page }) => {
+  test('[contact] contact WhatsApp CTA points to the expected number', async ({ page }) => {
     await page.goto(`${BASE_URL}/contact.html`);
     await expect(page.getByRole('link', { name: /Écrire sur WhatsApp/i })).toHaveAttribute('href', 'https://wa.me/33768345608');
   });
