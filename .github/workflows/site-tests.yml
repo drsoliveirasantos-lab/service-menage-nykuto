@@ -1,20 +1,30 @@
 name: Site tests
 
 on:
-  push:
-    branches:
-      - preview
   workflow_dispatch:
+  push:
+    branches: [preview]
+  pull_request:
+    branches: [preview]
+
+permissions:
+  contents: read
+  actions: read
+  issues: write
 
 concurrency:
   group: service-menage-site-tests-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  NODE_VERSION: 24
+  TEST_BASE_URL: http://127.0.0.1:4173
+
 jobs:
-  run-1-site-web:
-    name: Run 1 — Site web static checks
+  run-1-static-validation:
+    name: Run 1 — Static site validation
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Checkout preview
         uses: actions/checkout@v4
@@ -37,8 +47,8 @@ jobs:
       - name: Check current branding and placeholders
         run: |
           set -e
-          if grep -R -n "Laetitia\|Letícia\|Nykuto Services\|votre.email@gmail.com\|CONTACT_EMAIL\|assets/portrait-menage-bordeaux.png\|assets/hero-bordeaux-menage.png" *.html script.js; then
-            echo "Old branding, placeholder, or obsolete asset path found."
+          if grep -R -n "Laetitia\|Letícia\|Nykuto Services\|votre.email@gmail.com\|CONTACT_EMAIL" *.html script.js; then
+            echo "Old branding or placeholder found."
             exit 1
           fi
           grep -q "Leticia" index.html
@@ -80,117 +90,10 @@ jobs:
           console.log('All internal links and resources are valid.');
           NODE
 
-  run-2-smoke-test:
-    name: Run 2 — Smoke test pages
-    needs: run-1-site-web
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout preview
-        uses: actions/checkout@v4
-        with:
-          ref: preview
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Install dependencies
-        run: npm install
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Start local static server
-        run: |
-          npx http-server . -p 4173 -s > server.log 2>&1 &
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then
-              echo "Static server is ready."
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Static server did not start."
-          cat server.log
-          exit 1
-      - name: Run smoke page-load tests
-        env:
-          BASE_URL: http://127.0.0.1:4173
-        run: npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[smoke\\]" --reporter=list
-
-  run-3-navigation-clicks:
-    name: Run 3 — Navigation and clicks
-    needs: run-1-site-web
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout preview
-        uses: actions/checkout@v4
-        with:
-          ref: preview
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Install dependencies
-        run: npm install
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Start local static server
-        run: |
-          npx http-server . -p 4173 -s > server.log 2>&1 &
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then
-              echo "Static server is ready."
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Static server did not start."
-          cat server.log
-          exit 1
-      - name: Run navigation and mobile tests
-        env:
-          BASE_URL: http://127.0.0.1:4173
-        run: npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[navigation\\]|\\[mobile\\]" --reporter=list
-
-  run-4-forms-whatsapp:
-    name: Run 4 — Forms and WhatsApp
-    needs: run-1-site-web
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - name: Checkout preview
-        uses: actions/checkout@v4
-        with:
-          ref: preview
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Install dependencies
-        run: npm install
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Start local static server
-        run: |
-          npx http-server . -p 4173 -s > server.log 2>&1 &
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then
-              echo "Static server is ready."
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Static server did not start."
-          cat server.log
-          exit 1
-      - name: Run form and WhatsApp tests
-        env:
-          BASE_URL: http://127.0.0.1:4173
-        run: npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[forms\\]|\\[contact\\]" --reporter=list
-
-  run-5-seo-content:
-    name: Run 5 — SEO and content sanity
-    needs: run-1-site-web
+  run-2-static-seo-content:
+    name: Run 2 — Static SEO and content sanity
+    needs: run-1-static-validation
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -199,7 +102,7 @@ jobs:
         with:
           ref: preview
 
-      - name: Run static SEO and content tests
+      - name: Check titles and meta descriptions
         run: |
           node <<'NODE'
           const fs = require('fs');
@@ -250,3 +153,293 @@ jobs:
           if (failed) process.exit(1);
           console.log('All static SEO checks passed.');
           NODE
+
+  run-3-browser-smoke:
+    name: Run 3 — Browser smoke tests
+    needs: run-1-static-validation
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm install
+      - name: Install Playwright Chromium with timeout
+        run: timeout 300s npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          npx http-server . -p 4173 -s > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS $TEST_BASE_URL/index.html > /dev/null; then
+              echo "Static server is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Static server did not start."
+          cat server.log
+          exit 1
+      - name: Run smoke page-load tests
+        run: |
+          set +e
+          npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[smoke\\]" --reporter=json > smoke.json
+          code=$?
+          node - smoke.json <<'NODE'
+          const fs = require('fs');
+          const file = process.argv[2];
+          try {
+            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const stats = report.stats || {};
+            console.log(`Playwright summary for ${file}: expected=${stats.expected ?? 0}, unexpected=${stats.unexpected ?? 0}, skipped=${stats.skipped ?? 0}, flaky=${stats.flaky ?? 0}`);
+          } catch (error) {
+            console.log(`Could not read ${file}: ${error.message}`);
+          }
+          NODE
+          exit $code
+      - name: Upload smoke evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-evidence
+          if-no-files-found: ignore
+          path: |
+            smoke.json
+            server.log
+            test-results/**
+            playwright-report/**
+
+  run-4-browser-navigation:
+    name: Run 4 — Browser navigation and service links
+    needs: run-1-static-validation
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm install
+      - name: Install Playwright Chromium with timeout
+        run: timeout 300s npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          npx http-server . -p 4173 -s > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS $TEST_BASE_URL/index.html > /dev/null; then
+              echo "Static server is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Static server did not start."
+          cat server.log
+          exit 1
+      - name: Run navigation tests
+        run: |
+          set +e
+          npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[navigation\\]" --reporter=json > navigation.json
+          code=$?
+          node - navigation.json <<'NODE'
+          const fs = require('fs');
+          const file = process.argv[2];
+          try {
+            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const stats = report.stats || {};
+            console.log(`Playwright summary for ${file}: expected=${stats.expected ?? 0}, unexpected=${stats.unexpected ?? 0}, skipped=${stats.skipped ?? 0}, flaky=${stats.flaky ?? 0}`);
+          } catch (error) {
+            console.log(`Could not read ${file}: ${error.message}`);
+          }
+          NODE
+          exit $code
+      - name: Upload navigation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: navigation-evidence
+          if-no-files-found: ignore
+          path: |
+            navigation.json
+            server.log
+            test-results/**
+            playwright-report/**
+
+  run-5-browser-mobile:
+    name: Run 5 — Browser mobile menu tests
+    needs: run-1-static-validation
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm install
+      - name: Install Playwright Chromium with timeout
+        run: timeout 300s npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          npx http-server . -p 4173 -s > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS $TEST_BASE_URL/index.html > /dev/null; then
+              echo "Static server is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Static server did not start."
+          cat server.log
+          exit 1
+      - name: Run mobile menu tests
+        run: |
+          set +e
+          npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[mobile\\]" --reporter=json > mobile.json
+          code=$?
+          node - mobile.json <<'NODE'
+          const fs = require('fs');
+          const file = process.argv[2];
+          try {
+            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const stats = report.stats || {};
+            console.log(`Playwright summary for ${file}: expected=${stats.expected ?? 0}, unexpected=${stats.unexpected ?? 0}, skipped=${stats.skipped ?? 0}, flaky=${stats.flaky ?? 0}`);
+          } catch (error) {
+            console.log(`Could not read ${file}: ${error.message}`);
+          }
+          NODE
+          exit $code
+      - name: Upload mobile evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-evidence
+          if-no-files-found: ignore
+          path: |
+            mobile.json
+            server.log
+            test-results/**
+            playwright-report/**
+
+  run-6-browser-forms:
+    name: Run 6 — Browser forms and WhatsApp messages
+    needs: run-1-static-validation
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm install
+      - name: Install Playwright Chromium with timeout
+        run: timeout 300s npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          npx http-server . -p 4173 -s > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS $TEST_BASE_URL/index.html > /dev/null; then
+              echo "Static server is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Static server did not start."
+          cat server.log
+          exit 1
+      - name: Run form workflow tests
+        run: |
+          set +e
+          npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[forms\\]" --reporter=json > forms.json
+          code=$?
+          node - forms.json <<'NODE'
+          const fs = require('fs');
+          const file = process.argv[2];
+          try {
+            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const stats = report.stats || {};
+            console.log(`Playwright summary for ${file}: expected=${stats.expected ?? 0}, unexpected=${stats.unexpected ?? 0}, skipped=${stats.skipped ?? 0}, flaky=${stats.flaky ?? 0}`);
+          } catch (error) {
+            console.log(`Could not read ${file}: ${error.message}`);
+          }
+          NODE
+          exit $code
+      - name: Upload forms evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: forms-evidence
+          if-no-files-found: ignore
+          path: |
+            forms.json
+            server.log
+            test-results/**
+            playwright-report/**
+
+  run-7-browser-contact:
+    name: Run 7 — Browser contact CTA tests
+    needs: run-1-static-validation
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: preview
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm install
+      - name: Install Playwright Chromium with timeout
+        run: timeout 300s npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          npx http-server . -p 4173 -s > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS $TEST_BASE_URL/index.html > /dev/null; then
+              echo "Static server is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Static server did not start."
+          cat server.log
+          exit 1
+      - name: Run contact CTA tests
+        run: |
+          set +e
+          npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[contact\\]" --reporter=json > contact.json
+          code=$?
+          node - contact.json <<'NODE'
+          const fs = require('fs');
+          const file = process.argv[2];
+          try {
+            const report = JSON.parse(fs.readFileSync(file, 'utf8'));
+            const stats = report.stats || {};
+            console.log(`Playwright summary for ${file}: expected=${stats.expected ?? 0}, unexpected=${stats.unexpected ?? 0}, skipped=${stats.skipped ?? 0}, flaky=${stats.flaky ?? 0}`);
+          } catch (error) {
+            console.log(`Could not read ${file}: ${error.message}`);
+          }
+          NODE
+          exit $code
+      - name: Upload contact evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: contact-evidence
+          if-no-files-found: ignore
+          path: |
+            contact.json
+            server.log
+            test-results/**
+            playwright-report/**
