@@ -11,8 +11,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  static-checks:
-    name: Static checks
+  run-1-site-web:
+    name: Run 1 — Site web static checks
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -80,9 +80,9 @@ jobs:
           console.log('All internal links and resources are valid.');
           NODE
 
-  browser-user-flows:
-    name: Browser user-flow tests
-    needs: static-checks
+  run-2-smoke-test:
+    name: Run 2 — Smoke test pages
+    needs: run-1-site-web
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -90,18 +90,14 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: preview
-
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 24
-
       - name: Install dependencies
         run: npm install
-
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
-
       - name: Start local static server
         run: |
           npx http-server . -p 4173 -s > server.log 2>&1 &
@@ -115,8 +111,115 @@ jobs:
           echo "Static server did not start."
           cat server.log
           exit 1
-
-      - name: Run essential Playwright tests
+      - name: Run smoke page-load tests
         env:
           BASE_URL: http://127.0.0.1:4173
-        run: npx playwright test tests/essential-site.spec.js --project=chromium --reporter=list
+        run: npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[smoke\\]" --reporter=list
+
+  run-3-navigation-clicks:
+    name: Run 3 — Navigation and clicks
+    needs: run-1-site-web
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout preview
+        uses: actions/checkout@v4
+        with:
+          ref: preview
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          npx http-server . -p 4173 -s > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then
+              echo "Static server is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Static server did not start."
+          cat server.log
+          exit 1
+      - name: Run navigation and mobile tests
+        env:
+          BASE_URL: http://127.0.0.1:4173
+        run: npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[navigation\\]|\\[mobile\\]" --reporter=list
+
+  run-4-forms-whatsapp:
+    name: Run 4 — Forms and WhatsApp
+    needs: run-1-site-web
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout preview
+        uses: actions/checkout@v4
+        with:
+          ref: preview
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          npx http-server . -p 4173 -s > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then
+              echo "Static server is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Static server did not start."
+          cat server.log
+          exit 1
+      - name: Run form and WhatsApp tests
+        env:
+          BASE_URL: http://127.0.0.1:4173
+        run: npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[forms\\]|\\[contact\\]" --reporter=list
+
+  run-5-seo-content:
+    name: Run 5 — SEO and content sanity
+    needs: run-1-site-web
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout preview
+        uses: actions/checkout@v4
+        with:
+          ref: preview
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install dependencies
+        run: npm install
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Start local static server
+        run: |
+          npx http-server . -p 4173 -s > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then
+              echo "Static server is ready."
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Static server did not start."
+          cat server.log
+          exit 1
+      - name: Run SEO and content tests
+        env:
+          BASE_URL: http://127.0.0.1:4173
+        run: npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[seo\\]" --reporter=list
