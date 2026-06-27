@@ -1,5 +1,6 @@
 name: Site workflow check
 
+# Registered on main and executed on preview pushes.
 on:
   push:
     branches:
