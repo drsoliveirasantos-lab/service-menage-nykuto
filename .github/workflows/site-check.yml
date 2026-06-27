@@ -1,0 +1,192 @@
+name: Site workflow check
+
+on:
+  push:
+    branches:
+      - preview
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  current-site-workflows:
+    name: Check existing site workflows
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check JavaScript syntax
+        run: node --check script.js
+
+      - name: Check existing static site workflows
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+
+          const requiredFiles = [
+            'index.html',
+            'prestations.html',
+            'apropos.html',
+            'avis.html',
+            'devis.html',
+            'contact.html',
+            'mentions-legales.html',
+            'confidentialite.html',
+            'styles.css',
+            'script.js',
+            'hero-bordeaux-menage.png',
+            'portrait-menage-bordeaux.png'
+          ];
+
+          const htmlFiles = requiredFiles.filter((file) => file.endsWith('.html'));
+          const fail = (message) => {
+            console.error(`❌ ${message}`);
+            process.exitCode = 1;
+          };
+          const ok = (message) => console.log(`✅ ${message}`);
+
+          for (const file of requiredFiles) {
+            if (!fs.existsSync(file)) fail(`Missing required file: ${file}`);
+          }
+
+          const read = (file) => fs.readFileSync(file, 'utf8');
+          const script = read('script.js');
+          const allHtml = htmlFiles.map((file) => `${file}\n${read(file)}`).join('\n\n');
+
+          const forbiddenStrings = [
+            'Laetitia',
+            'Letícia',
+            'Nykuto Services',
+            'votre.email@gmail.com',
+            'CONTACT_EMAIL',
+            'assets/portrait-menage-bordeaux.png',
+            'assets/hero-bordeaux-menage.png'
+          ];
+
+          for (const value of forbiddenStrings) {
+            if ((allHtml + '\n' + script).includes(value)) {
+              fail(`Forbidden leftover string found: ${value}`);
+            }
+          }
+
+          if (!allHtml.includes('Leticia')) fail('Expected exact public name "Leticia" not found.');
+          if (!script.includes('const WHATSAPP_NUMBER = "33768345608"')) fail('WhatsApp number configuration missing or changed.');
+          if (!script.includes('window.open(url, "_blank", "noopener,noreferrer")')) fail('WhatsApp open workflow missing.');
+          if (!script.includes('zoneSelect?.addEventListener("change"')) fail('Other-zone toggle workflow missing.');
+          if (!script.includes('serviceMap')) fail('Service prefill workflow missing.');
+
+          const requiredPageElements = {
+            'index.html': [
+              'hero-bordeaux-menage.png',
+              'portrait-menage-bordeaux.png',
+              'href="devis.html"',
+              'href="prestations.html"',
+              'href="apropos.html"',
+              'href="avis.html"'
+            ],
+            'prestations.html': [
+              'devis.html?service=menage-regulier',
+              'devis.html?service=menage-ponctuel',
+              'devis.html?service=repassage',
+              'devis.html?service=grand-nettoyage'
+            ],
+            'devis.html': [
+              'id="quote-form"',
+              'name="firstname"',
+              'name="phone"',
+              'name="email"',
+              'name="zone"',
+              'id="other-zone-row"',
+              'name="other-zone"',
+              'name="housing"',
+              'name="surface"',
+              'name="service"',
+              'name="frequency"',
+              'name="message"',
+              'type="submit"'
+            ],
+            'avis.html': [
+              'id="review-form"',
+              'name="review-name"',
+              'name="review-city"',
+              'name="review-rating"',
+              'name="review-service"',
+              'name="review-message"'
+            ],
+            'contact.html': [
+              'https://wa.me/33768345608',
+              'portrait-menage-bordeaux.png'
+            ],
+            'mentions-legales.html': [
+              'Cloudflare Pages',
+              'Leticia Ménage Bordeaux'
+            ],
+            'confidentialite.html': [
+              'Protection des données',
+              'page Contact'
+            ]
+          };
+
+          for (const [file, snippets] of Object.entries(requiredPageElements)) {
+            const content = read(file);
+            for (const snippet of snippets) {
+              if (!content.includes(snippet)) fail(`${file} is missing expected existing workflow/content: ${snippet}`);
+            }
+          }
+
+          for (const file of htmlFiles) {
+            const content = read(file);
+            if (!content.includes('class="nav-toggle"')) fail(`${file} missing mobile menu button.`);
+            if (!content.includes('id="main-nav"')) fail(`${file} missing main navigation.`);
+            if (!content.includes('<script src="script.js"></script>')) fail(`${file} missing script.js include.`);
+          }
+
+          const internalRefs = [];
+          for (const file of htmlFiles) {
+            const content = read(file);
+            const attrRegex = /(?:href|src)="([^"]+)"/g;
+            for (const match of content.matchAll(attrRegex)) {
+              const ref = match[1];
+              if (
+                ref.startsWith('http://') ||
+                ref.startsWith('https://') ||
+                ref.startsWith('mailto:') ||
+                ref.startsWith('tel:') ||
+                ref.startsWith('#')
+              ) continue;
+              const target = ref.split('#')[0].split('?')[0];
+              if (!target || target === '') continue;
+              internalRefs.push({ file, ref, target });
+            }
+          }
+
+          for (const { file, ref, target } of internalRefs) {
+            if (!fs.existsSync(target)) fail(`${file} links to missing internal resource: ${ref}`);
+          }
+
+          const serviceKeys = ['menage-regulier', 'menage-ponctuel', 'repassage', 'grand-nettoyage'];
+          for (const key of serviceKeys) {
+            if (!read('prestations.html').includes(`devis.html?service=${key}`)) fail(`Missing service CTA link for ${key}.`);
+            if (!script.includes(`"${key}"`)) fail(`script.js missing serviceMap key for ${key}.`);
+          }
+
+          if (process.exitCode) process.exit(process.exitCode);
+
+          ok('All required files exist.');
+          ok('No obsolete branding or placeholder strings found.');
+          ok('All internal links and image references resolve.');
+          ok('Mobile menu structure exists on every page.');
+          ok('Quote form workflow matches current site features.');
+          ok('Review form workflow matches current site features.');
+          ok('Service-to-quote prefill workflow is configured.');
+          ok('Contact WhatsApp workflow is configured.');
+          NODE
