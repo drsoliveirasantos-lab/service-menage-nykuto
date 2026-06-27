@@ -192,34 +192,61 @@ jobs:
     name: Run 5 — SEO and content sanity
     needs: run-1-site-web
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
     steps:
       - name: Checkout preview
         uses: actions/checkout@v4
         with:
           ref: preview
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Install dependencies
-        run: npm install
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
-      - name: Start local static server
+
+      - name: Run static SEO and content tests
         run: |
-          npx http-server . -p 4173 -s > server.log 2>&1 &
-          for i in {1..30}; do
-            if curl -fsS http://127.0.0.1:4173/index.html > /dev/null; then
-              echo "Static server is ready."
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "Static server did not start."
-          cat server.log
-          exit 1
-      - name: Run SEO and content tests
-        env:
-          BASE_URL: http://127.0.0.1:4173
-        run: npx playwright test tests/essential-site.spec.js --project=chromium --grep "\\[seo\\]" --reporter=list
+          node <<'NODE'
+          const fs = require('fs');
+          const pages = ['index.html','prestations.html','apropos.html','avis.html','devis.html','contact.html','mentions-legales.html','confidentialite.html'];
+          let failed = false;
+
+          function decodeHtml(value) {
+            return String(value || '')
+              .replace(/&amp;/g, '&')
+              .replace(/&quot;/g, '"')
+              .replace(/&#39;/g, "'")
+              .replace(/&nbsp;/g, ' ')
+              .trim();
+          }
+
+          function getTitle(html) {
+            return decodeHtml(html.match(/<title>([\s\S]*?)<\/title>/i)?.[1] || '');
+          }
+
+          function getDescription(html) {
+            const nameFirst = html.match(/<meta\s+[^>]*name=["']description["'][^>]*content=["']([^"']+)["'][^>]*>/i)?.[1];
+            const contentFirst = html.match(/<meta\s+[^>]*content=["']([^"']+)["'][^>]*name=["']description["'][^>]*>/i)?.[1];
+            return decodeHtml(nameFirst || contentFirst || '');
+          }
+
+          for (const page of pages) {
+            const html = fs.readFileSync(page, 'utf8');
+            const title = getTitle(html);
+            const description = getDescription(html);
+            console.log(`${page}`);
+            console.log(`  title: ${title}`);
+            console.log(`  description: ${description}`);
+
+            if (title.length < 8) {
+              console.error(`SEO error in ${page}: missing or too short <title>.`);
+              failed = true;
+            }
+            if (description.length < 20) {
+              console.error(`SEO error in ${page}: missing or too short meta description.`);
+              failed = true;
+            }
+            if (!/(Leticia|Bordeaux|ménage|menage)/i.test(`${title} ${description}`)) {
+              console.error(`SEO error in ${page}: title/description should mention Leticia, Bordeaux, or ménage.`);
+              failed = true;
+            }
+          }
+
+          if (failed) process.exit(1);
+          console.log('All static SEO checks passed.');
+          NODE
