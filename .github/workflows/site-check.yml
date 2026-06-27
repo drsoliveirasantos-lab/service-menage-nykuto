@@ -7,56 +7,91 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 jobs:
   current-site-workflows:
     name: Check existing site workflows
     runs-on: ubuntu-latest
     steps:
-      - name: Clone preview branch
+      - name: Run checks and create detailed notification issue
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
-          git clone --depth 1 --branch preview "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" site
+          set +e
+          STATUS=0
+          REPORT="site-check-report.md"
+          DETAILS="site-check-details.log"
+          : > "$REPORT"
+          : > "$DETAILS"
 
-      - name: Check current site files and paths
-        run: |
-          cd site
-          set -e
-          for f in index.html prestations.html apropos.html avis.html devis.html contact.html mentions-legales.html confidentialite.html styles.css script.js hero-bordeaux-menage.png portrait-menage-bordeaux.png; do
-            test -f "$f" || { echo "Missing file: $f"; exit 1; }
-          done
+          echo "# Site workflow check" >> "$REPORT"
+          echo "" >> "$REPORT"
+          echo "- Repository: ${GITHUB_REPOSITORY}" >> "$REPORT"
+          echo "- Branch: preview" >> "$REPORT"
+          echo "- Commit: ${GITHUB_SHA}" >> "$REPORT"
+          echo "- Run: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" >> "$REPORT"
+          echo "" >> "$REPORT"
 
-          node --check script.js
+          pass() { echo "✅ $1" >> "$REPORT"; }
+          fail() { echo "❌ $1" >> "$REPORT"; STATUS=1; }
 
-          ! grep -R "Laetitia\|Letícia\|Nykuto Services\|votre.email@gmail.com\|CONTACT_EMAIL\|assets/portrait-menage-bordeaux.png\|assets/hero-bordeaux-menage.png" *.html script.js
+          echo "## Téléchargement de la branche preview" >> "$REPORT"
+          curl -L -sS -H "Authorization: Bearer ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/tarball/preview" -o repo.tar.gz >> "$DETAILS" 2>&1
+          if [ $? -ne 0 ] || [ ! -s repo.tar.gz ]; then
+            fail "Impossible de télécharger la branche preview depuis GitHub."
+          else
+            mkdir site-src
+            tar -xzf repo.tar.gz -C site-src --strip-components=1 >> "$DETAILS" 2>&1
+            if [ $? -ne 0 ]; then
+              fail "Impossible d’extraire l’archive de la branche preview."
+            else
+              pass "Branche preview téléchargée et extraite."
+            fi
+          fi
 
-          grep -q "Leticia" index.html
-          grep -q 'const WHATSAPP_NUMBER = "33768345608"' script.js
-          grep -q 'window.open(url, "_blank", "noopener,noreferrer")' script.js
-          grep -q 'zoneSelect?.addEventListener("change"' script.js
-          grep -q 'serviceMap' script.js
+          if [ -d site-src ]; then
+            cd site-src
+            echo "" >> "../$REPORT"
+            echo "## Vérifications du site" >> "../$REPORT"
 
-          grep -q 'hero-bordeaux-menage.png' index.html
-          grep -q 'portrait-menage-bordeaux.png' index.html
-          grep -q 'https://wa.me/33768345608' contact.html
-          grep -q 'id="quote-form"' devis.html
-          grep -q 'id="review-form"' avis.html
-          grep -q 'Cloudflare Pages' mentions-legales.html
-          grep -q 'Protection des données' confidentialite.html
+            REQUIRED_FILES="index.html prestations.html apropos.html avis.html devis.html contact.html mentions-legales.html confidentialite.html styles.css script.js hero-bordeaux-menage.png portrait-menage-bordeaux.png"
+            for f in $REQUIRED_FILES; do
+              if [ -f "$f" ]; then pass "Fichier présent : $f"; else fail "Fichier manquant : $f"; fi
+            done
 
-          for key in menage-regulier menage-ponctuel repassage grand-nettoyage; do
-            grep -q "devis.html?service=$key" prestations.html
-            grep -q "\"$key\"" script.js
-          done
+            node --check script.js >> "../$DETAILS" 2>&1
+            if [ $? -eq 0 ]; then pass "Syntaxe JavaScript valide : script.js"; else fail "Erreur de syntaxe JavaScript dans script.js"; fi
 
-          for page in index.html prestations.html apropos.html avis.html devis.html contact.html mentions-legales.html confidentialite.html; do
-            grep -q 'class="nav-toggle"' "$page"
-            grep -q 'id="main-nav"' "$page"
-            grep -q '<script src="script.js"></script>' "$page"
-          done
+            grep -R -n "Laetitia\|Letícia\|Nykuto Services\|votre.email@gmail.com\|CONTACT_EMAIL\|assets/portrait-menage-bordeaux.png\|assets/hero-bordeaux-menage.png" *.html script.js >> "../$DETAILS" 2>&1
+            if [ $? -eq 0 ]; then fail "Ancien nom, placeholder ou ancien chemin trouvé dans le code."; else pass "Aucun ancien nom, placeholder ou ancien chemin détecté."; fi
 
-          node <<'NODE'
+            grep -q "Leticia" index.html && pass "Nom public exact trouvé : Leticia" || fail "Nom public exact Leticia absent de index.html"
+            grep -q 'const WHATSAPP_NUMBER = "33768345608"' script.js && pass "Configuration WhatsApp présente." || fail "Configuration WhatsApp absente ou modifiée."
+            grep -q 'window.open(url, "_blank", "noopener,noreferrer")' script.js && pass "Ouverture WhatsApp configurée." || fail "Ouverture WhatsApp manquante."
+            grep -q 'zoneSelect?.addEventListener("change"' script.js && pass "Workflow champ Autre ville configuré." || fail "Workflow champ Autre ville manquant."
+            grep -q 'serviceMap' script.js && pass "Workflow préremplissage service configuré." || fail "Workflow préremplissage service manquant."
+
+            grep -q 'hero-bordeaux-menage.png' index.html && pass "Image hero référencée sur l’accueil." || fail "Image hero non référencée sur l’accueil."
+            grep -q 'portrait-menage-bordeaux.png' index.html && pass "Portrait référencé sur l’accueil." || fail "Portrait non référencé sur l’accueil."
+            grep -q 'https://wa.me/33768345608' contact.html && pass "Bouton WhatsApp contact configuré." || fail "Bouton WhatsApp contact manquant."
+            grep -q 'id="quote-form"' devis.html && pass "Formulaire devis présent." || fail "Formulaire devis absent."
+            grep -q 'id="review-form"' avis.html && pass "Formulaire avis présent." || fail "Formulaire avis absent."
+            grep -q 'Cloudflare Pages' mentions-legales.html && pass "Hébergement Cloudflare indiqué." || fail "Hébergement Cloudflare absent des mentions légales."
+            grep -q 'Protection des données' confidentialite.html && pass "Page confidentialité présente." || fail "Page confidentialité incomplète."
+
+            for key in menage-regulier menage-ponctuel repassage grand-nettoyage; do
+              grep -q "devis.html?service=$key" prestations.html && pass "Lien prestation vers devis : $key" || fail "Lien prestation manquant : $key"
+              grep -q "\"$key\"" script.js && pass "Clé de préremplissage JS : $key" || fail "Clé de préremplissage JS manquante : $key"
+            done
+
+            for page in index.html prestations.html apropos.html avis.html devis.html contact.html mentions-legales.html confidentialite.html; do
+              grep -q 'class="nav-toggle"' "$page" && pass "Menu mobile présent : $page" || fail "Menu mobile absent : $page"
+              grep -q 'id="main-nav"' "$page" && pass "Navigation principale présente : $page" || fail "Navigation principale absente : $page"
+              grep -q '<script src="script.js"></script>' "$page" && pass "Script chargé : $page" || fail "script.js non chargé : $page"
+            done
+
+            node <<'NODE' >> "../site-check-details.log" 2>&1
           const fs = require('fs');
           const pages = ['index.html','prestations.html','apropos.html','avis.html','devis.html','contact.html','mentions-legales.html','confidentialite.html'];
           let failed = false;
@@ -74,5 +109,32 @@ jobs:
             }
           }
           if (failed) process.exit(1);
-          console.log('All existing site workflow checks passed.');
           NODE
+            if [ $? -eq 0 ]; then pass "Tous les liens internes et images pointent vers des fichiers existants."; else fail "Un lien interne ou une image pointe vers un fichier manquant."; fi
+            cd ..
+          fi
+
+          echo "" >> "$REPORT"
+          echo "## Détails techniques" >> "$REPORT"
+          echo '```text' >> "$REPORT"
+          tail -n 120 "$DETAILS" >> "$REPORT"
+          echo '```' >> "$REPORT"
+
+          if [ "$STATUS" -eq 0 ]; then
+            TITLE="✅ Site workflow check OK - preview (${GITHUB_SHA:0:7})"
+          else
+            TITLE="❌ Site workflow check FAILED - preview (${GITHUB_SHA:0:7})"
+          fi
+
+          node -e 'const fs=require("fs"); const title=process.env.TITLE; const body=fs.readFileSync(process.env.REPORT,"utf8"); fs.writeFileSync("issue.json", JSON.stringify({title, body}));' \
+            >> "$DETAILS" 2>&1
+
+          curl -sS -X POST \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/issues" \
+            --data @issue.json >> "$DETAILS" 2>&1
+
+          cat "$REPORT"
+          exit "$STATUS"
