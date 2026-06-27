@@ -54,24 +54,24 @@ test.describe('Site public Leticia', () => {
   test('[seo] every public page has title and meta description', async ({ page }) => {
     for (const currentPage of pages) {
       await page.goto(`${BASE_URL}/${currentPage}`);
-      await expect(page.locator('title')).not.toHaveText('');
-      const description = page.locator('meta[name="description"]');
-      await expect(description).toHaveAttribute('content', /\S{20,}/);
+      expect(await page.title(), `${currentPage} should have a title`).toMatch(/\S{8,}/);
+      const description = await page.locator('meta[name="description"]').getAttribute('content');
+      expect(description || '', `${currentPage} should have a meta description`).toMatch(/\S{20,}/);
     }
   });
 
   test('[navigation] desktop navigation reaches every main page', async ({ page }) => {
     const navTargets = [
-      ['Prestations', /prestations\.html$/],
-      ['À propos', /apropos\.html$/],
-      ['Avis', /avis\.html$/],
-      ['Contact', /contact\.html$/],
-      ['Recevoir une estimation', /devis\.html$/]
+      ['a[href="prestations.html"]', /prestations\.html$/],
+      ['a[href="apropos.html"]', /apropos\.html$/],
+      ['a[href="avis.html"]', /avis\.html$/],
+      ['a[href="contact.html"]', /contact\.html$/],
+      ['a.nav-cta[href="devis.html"]', /devis\.html$/]
     ];
 
-    for (const [label, expectedUrl] of navTargets) {
+    for (const [selector, expectedUrl] of navTargets) {
       await page.goto(`${BASE_URL}/index.html`);
-      await page.getByRole('navigation').getByRole('link', { name: label, exact: true }).click();
+      await page.locator('nav.main-nav').locator(selector).first().click();
       await expect(page).toHaveURL(expectedUrl);
     }
   });
@@ -88,7 +88,7 @@ test.describe('Site public Leticia', () => {
     await expect(toggle).toHaveAttribute('aria-expanded', 'true');
     await expect(nav).toHaveClass(/open/);
 
-    await nav.getByRole('link', { name: 'Prestations', exact: true }).click();
+    await nav.locator('a[href="prestations.html"]').click();
     await expect(page).toHaveURL(/prestations\.html$/);
     await expect(page.locator('body')).not.toHaveClass(/menu-open/);
   });
