@@ -125,6 +125,7 @@ jobs:
           else
             TITLE="❌ Site workflow check FAILED - preview (${GITHUB_SHA:0:7})"
           fi
+          export TITLE REPORT
 
           node -e 'const fs=require("fs"); const title=process.env.TITLE; const body=fs.readFileSync(process.env.REPORT,"utf8"); fs.writeFileSync("issue.json", JSON.stringify({title, body}));' \
             >> "$DETAILS" 2>&1
