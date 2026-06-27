@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - preview
-      - main
   workflow_dispatch:
 
 concurrency:
@@ -28,7 +27,7 @@ jobs:
       - name: Check required files
         run: |
           set -e
-          for file in index.html prestations.html apropos.html avis.html devis.html contact.html mentions-legales.html confidentialite.html styles.css script.js hero-bordeaux-menage.png portrait-menage-bordeaux.png package.json tests/essential-site.spec.js; do
+          for file in index.html prestations.html apropos.html avis.html devis.html contact.html mentions-legales.html confidentialite.html styles.css script.js hero-bordeaux-menage.png portrait-menage-bordeaux.png package.json playwright.config.js tests/essential-site.spec.js; do
             if [ ! -f "$file" ]; then
               echo "Missing required file: $file"
               exit 1
@@ -95,7 +94,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install dependencies
         run: npm install
