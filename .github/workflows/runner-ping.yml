@@ -1,0 +1,19 @@
+name: Runner ping
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Runner availability ping
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print runner status
+        run: |
+          echo "GitHub Actions runner is working."
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Ref: $GITHUB_REF"
+          echo "Commit: $GITHUB_SHA"
